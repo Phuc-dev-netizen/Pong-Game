@@ -1,5 +1,6 @@
-#include <SDL.h>
-#include <iostream>
+#include<SDL.h>
+#include<iostream>
+#include<SDL_image.h>
 using namespace std;
 
 //Độ phân giải cửa sổ game
@@ -29,22 +30,62 @@ int main(int argc,char* argv[]){
         SDL_Quit();
         return 1;
     }
+    //Khai báo texture menu
+    SDL_Texture* startTex=nullptr;//Texture nút Start
+    SDL_Texture* exitTex=nullptr;//Texture nút Exit
+    bool inMenu=true;
 
+    //Load ảnh
+    startTex=IMG_LoadTexture(renderer,"Start-button-icon-isolated-on-transparent-background-PNG.png");
+    exitTex=IMG_LoadTexture(renderer,"Quit-button-hd-png.png");
+    if(!startTex||!exitTex){
+        cerr<<"Lỗi! Kiểm tra xem bạn đã đặt file ảnh cùng thư mục với exe chưa!"<<endl;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
     //Thiết lập đối tượng game (thanh trái, thanh phải, quả bóng)
     SDL_Rect paddleLeft={10,WINDOW_HEIGHT/2-50,10,100};  //x,y,w,h
     SDL_Rect paddleRight={WINDOW_WIDTH-20,WINDOW_HEIGHT/2-50,10,100};
     SDL_Rect ball={WINDOW_WIDTH/2-10,WINDOW_HEIGHT/2-10,20,20};
     int ballVelX=5, ballVelY=5;
 
-    //Vòng lặp chính
+    //Vòng lặp
     bool quit=false;
     SDL_Event e;
     while(!quit){
+        while(inMenu){
+        //Vẽ menu
+        SDL_SetRenderDrawColor(renderer,0,0,0,255);
+        SDL_RenderClear(renderer);
+
+        SDL_Rect startBtn={300,200,200,80};
+        SDL_Rect exitBtn={300,300,200,80};
+        SDL_RenderCopy(renderer,startTex,NULL,&startBtn);
+        SDL_RenderCopy(renderer,exitTex,NULL,&exitBtn);
+        SDL_RenderPresent(renderer);
+
+        //Xử lý sự kiện menu
+        SDL_Event e;
+        while(SDL_PollEvent(&e)){
+            if(e.type==SDL_QUIT){
+                quit=true;
+                inMenu=false;
+            }
+            if(e.type==SDL_MOUSEBUTTONDOWN){
+                int x,y;
+                SDL_GetMouseState(&x,&y);
+                if(x>=300&&x<=500&&y>=200&&y<=280)inMenu=false;//Bắt đầu
+                if(x>=300&&x<=500&&y>=300&&y<=380)quit=true;//Thoát
+            }
+        }
+    }
         while(SDL_PollEvent(&e)){
             if(e.type==SDL_QUIT) quit=true;
         }
 
-        //Xử lý input
+        //Input
         const Uint8* keystates=SDL_GetKeyboardState(NULL);
         if(keystates[SDL_SCANCODE_W]&&paddleLeft.y>0) paddleLeft.y-=5;
         if(keystates[SDL_SCANCODE_S]&&paddleLeft.y+paddleLeft.h<WINDOW_HEIGHT) paddleLeft.y+=5;
@@ -59,14 +100,16 @@ int main(int argc,char* argv[]){
         if(ball.x<0||ball.x>WINDOW_WIDTH) ball={WINDOW_WIDTH/2-10,WINDOW_HEIGHT/2-10,20,20};
 
         //Vẽ hình
-        SDL_SetRenderDrawColor(renderer,0,0,0,255);
+        SDL_SetRenderDrawColor(renderer,0,0,0,255); //Màu nền: đen
         SDL_RenderClear(renderer);
-        SDL_SetRenderDrawColor(renderer,255,255,255,255);
+        SDL_SetRenderDrawColor(renderer,255,255,255,255); //Màu các thanh và bóng: trắng
         SDL_RenderFillRect(renderer,&paddleLeft);
         SDL_RenderFillRect(renderer,&paddleRight);
         SDL_RenderFillRect(renderer,&ball);
         SDL_RenderPresent(renderer);
-        SDL_Delay(16);
+
+        //Tự điều chỉnh fps (xấp xỉ 60)
+        SDL_Delay(16); //16ms
     }
 
     //Giải phóng bộ nhớ
