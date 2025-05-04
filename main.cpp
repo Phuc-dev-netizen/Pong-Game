@@ -2,119 +2,195 @@
 #include<iostream>
 #include<SDL_image.h>
 using namespace std;
+const int WINDOW_WIDTH=800;
+const int WINDOW_HEIGHT=600;
 
-//Độ phân giải cửa sổ game
-const int WINDOW_WIDTH=800; //Chiều rộng
-const int WINDOW_HEIGHT=600; //Chiều dài
+// Mảng 7 màu cầu vồng
+SDL_Color rainbowColors[7]={
+ {255,0,0,255},    // Đỏ
+ {255,127,0,255},  // Cam
+ {255,255,0,255},  // Vàng
+ {0,255,0,255},    // Lục
+ {0,0,255,255},    // Lam
+ {75,0,130,255},   // Chàm
+ {148,0,211,255}   // Tím
+};
 
-int main(int argc,char* argv[]){
-    //Khởi tạo SDL
-    if(SDL_Init(SDL_INIT_VIDEO)<0){
-        cerr<<"Lỗi SDL: "<<SDL_GetError()<<endl;
-        return 1;
+// Hàm tải ảnh và trả về texture
+SDL_Texture*LoadTexture(const char*path,SDL_Renderer*renderer){
+ SDL_Surface*surface=IMG_Load(path);
+ if(!surface){
+  cerr<<"Failed to load image: "<<path<<" - "<<IMG_GetError()<<endl;
+  return nullptr;
+ }
+ SDL_Texture*texture=SDL_CreateTextureFromSurface(renderer,surface);
+ SDL_FreeSurface(surface);
+ return texture;
+}
+
+int main(int argc,char*argv[]){
+ if(SDL_Init(SDL_INIT_VIDEO)<0){
+  cerr<<"SDL could not initialize: "<<SDL_GetError()<<endl;
+  return 1;
+ }
+ if(!(IMG_Init(IMG_INIT_PNG)&IMG_INIT_PNG)){
+  cerr<<"SDL_image could not initialize: "<<IMG_GetError()<<endl;
+  return 1;
+ }
+ SDL_Window*window=SDL_CreateWindow("Game bóng bàn",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,WINDOW_WIDTH,WINDOW_HEIGHT,SDL_WINDOW_SHOWN);
+ if(!window){
+  cerr<<"Window could not be created: "<<SDL_GetError()<<endl;
+  return 1;
+ }
+ SDL_Renderer*renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
+ if(!renderer){
+  cerr<<"Renderer could not be created: "<<SDL_GetError()<<endl;
+  return 1;
+ }
+
+ // Tải ảnh nền và nút
+ SDL_Texture*bgMain=LoadTexture("menu_main.png",renderer);
+ SDL_Texture*bgMenus[3]={
+  LoadTexture("menu_bg1.png",renderer),
+  LoadTexture("menu_bg2.png",renderer),
+  LoadTexture("menu_bg3.png",renderer)
+ };
+ SDL_Texture*gameBg=LoadTexture("game_bg.png",renderer);
+ SDL_Texture*playBtnImg=LoadTexture("button_play.png",renderer);
+ SDL_Texture*exitBtnImg=LoadTexture("button_exit.png",renderer);
+
+ SDL_Rect paddleLeft={10,WINDOW_HEIGHT/2-50,10,100};
+ SDL_Rect paddleRight={WINDOW_WIDTH-20,WINDOW_HEIGHT/2-50,10,100};
+ SDL_Rect ball={WINDOW_WIDTH/2-10,WINDOW_HEIGHT/2-10,20,20};
+ int ballVelX=5,ballVelY=5;
+
+ SDL_Color paddleLeftColor={255,255,255,255};
+ SDL_Color paddleRightColor={255,255,255,255};
+ SDL_Color ballColor={255,255,255,255};
+
+ bool quit=false;
+ SDL_Event e;
+ bool inMenu=true;
+ bool inColorMenu=false;
+ int currentColorMenu=0; // 0 = thanh trái, 1 = thanh phải, 2 = bóng
+
+ while(!quit){
+  // Giao diện menu chính
+  while(inMenu){
+   SDL_RenderClear(renderer);
+   SDL_RenderCopy(renderer,bgMain,NULL,NULL);
+
+   SDL_Rect playBtn={WINDOW_WIDTH/2-100,WINDOW_HEIGHT-160,200,60};
+   SDL_Rect exitBtn={WINDOW_WIDTH/2-100,WINDOW_HEIGHT-80,200,60};
+
+   SDL_RenderCopy(renderer,playBtnImg,NULL,&playBtn);
+   SDL_RenderCopy(renderer,exitBtnImg,NULL,&exitBtn);
+   SDL_RenderPresent(renderer);
+
+   while(SDL_PollEvent(&e)){
+    if(e.type==SDL_QUIT){
+     quit=true;
+     inMenu=false;
     }
-
-    //Tạo cửa sổ game (tiêu đề, x, y, w, h, cờ hiển thị)
-    SDL_Window* window=SDL_CreateWindow("Game bóng bàn",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,WINDOW_WIDTH,WINDOW_HEIGHT,SDL_WINDOW_SHOWN);
-    if(!window){
-        cerr<<"Lỗi cửa sổ: "<<SDL_GetError()<<endl;
-        SDL_Quit();
-        return 1;
+    if(e.type==SDL_MOUSEBUTTONDOWN){
+     int x,y;
+     SDL_GetMouseState(&x,&y);
+     if(x>=playBtn.x&&x<=playBtn.x+playBtn.w&&y>=playBtn.y&&y<=playBtn.y+playBtn.h){
+      inColorMenu=true;
+      inMenu=false;
+      currentColorMenu=0;
+     }
+     if(x>=exitBtn.x&&x<=exitBtn.x+exitBtn.w&&y>=exitBtn.y&&y<=exitBtn.y+exitBtn.h){
+      quit=true;
+      inMenu=false;
+     }
     }
+   }
+  }
 
-    //Tạo renderer (cửa sổ, index, chế độ tăng tốc)
-    SDL_Renderer* renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
-    if(!renderer){
-        cerr<<"Lỗi renderer: "<<SDL_GetError()<<endl;
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
+  // Giao diện chọn màu
+  while(inColorMenu){
+   SDL_RenderClear(renderer);
+   SDL_RenderCopy(renderer,bgMenus[currentColorMenu],NULL,NULL);
+
+   int startX=(WINDOW_WIDTH-(7*80+6*10))/2;
+   for(int i=0;i<7;++i){
+    SDL_Rect rect={startX+i*90,250,80,80};
+    SDL_SetRenderDrawColor(renderer,rainbowColors[i].r,rainbowColors[i].g,rainbowColors[i].b,255);
+    SDL_RenderFillRect(renderer,&rect);
+   }
+   SDL_RenderPresent(renderer);
+
+   while(SDL_PollEvent(&e)){
+    if(e.type==SDL_QUIT){
+     quit=true;
+     inColorMenu=false;
     }
-    //Khai báo texture menu
-    SDL_Texture* startTex=nullptr;//Texture nút Start
-    SDL_Texture* exitTex=nullptr;//Texture nút Exit
-    bool inMenu=true;
-
-    //Load ảnh
-    startTex=IMG_LoadTexture(renderer,"Start-button-icon-isolated-on-transparent-background-PNG.png");
-    exitTex=IMG_LoadTexture(renderer,"Quit-button-hd-png.png");
-    if(!startTex||!exitTex){
-        cerr<<"Lỗi! Kiểm tra xem bạn đã đặt file ảnh cùng thư mục với exe chưa!"<<endl;
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return 1;
+    if(e.type==SDL_MOUSEBUTTONDOWN){
+     int x,y;
+     SDL_GetMouseState(&x,&y);
+     for(int i=0;i<7;++i){
+      SDL_Rect rect={startX+i*90,250,80,80};
+      if(x>=rect.x&&x<=rect.x+rect.w&&y>=rect.y&&y<=rect.y+rect.h){
+       if(currentColorMenu==0) paddleLeftColor=rainbowColors[i];
+       else if(currentColorMenu==1) paddleRightColor=rainbowColors[i];
+       else if(currentColorMenu==2) ballColor=rainbowColors[i];
+       currentColorMenu++;
+       if(currentColorMenu>2) inColorMenu=false;
+       break;
+      }
+     }
     }
-    //Thiết lập đối tượng game (thanh trái, thanh phải, quả bóng)
-    SDL_Rect paddleLeft={10,WINDOW_HEIGHT/2-50,10,100};  //x,y,w,h
-    SDL_Rect paddleRight={WINDOW_WIDTH-20,WINDOW_HEIGHT/2-50,10,100};
-    SDL_Rect ball={WINDOW_WIDTH/2-10,WINDOW_HEIGHT/2-10,20,20};
-    int ballVelX=5, ballVelY=5;
+   }
+  }
 
-    //Vòng lặp
-    bool quit=false;
-    SDL_Event e;
-    while(!quit){
-        while(inMenu){
-        //Vẽ menu
-        SDL_SetRenderDrawColor(renderer,0,0,0,255);
-        SDL_RenderClear(renderer);
+  // Xử lý sự kiện khi chơi
+  while(SDL_PollEvent(&e)){
+   if(e.type==SDL_QUIT) quit=true;
+  }
 
-        SDL_Rect startBtn={300,200,200,80};
-        SDL_Rect exitBtn={300,300,200,80};
-        SDL_RenderCopy(renderer,startTex,NULL,&startBtn);
-        SDL_RenderCopy(renderer,exitTex,NULL,&exitBtn);
-        SDL_RenderPresent(renderer);
+  const Uint8*keystates=SDL_GetKeyboardState(NULL);
+  if(keystates[SDL_SCANCODE_W]&&paddleLeft.y>0) paddleLeft.y-=5;
+  if(keystates[SDL_SCANCODE_S]&&paddleLeft.y+paddleLeft.h<WINDOW_HEIGHT) paddleLeft.y+=5;
+  if(keystates[SDL_SCANCODE_UP]&&paddleRight.y>0) paddleRight.y-=5;
+  if(keystates[SDL_SCANCODE_DOWN]&&paddleRight.y+paddleRight.h<WINDOW_HEIGHT) paddleRight.y+=5;
 
-        //Xử lý sự kiện menu
-        SDL_Event e;
-        while(SDL_PollEvent(&e)){
-            if(e.type==SDL_QUIT){
-                quit=true;
-                inMenu=false;
-            }
-            if(e.type==SDL_MOUSEBUTTONDOWN){
-                int x,y;
-                SDL_GetMouseState(&x,&y);
-                if(x>=300&&x<=500&&y>=200&&y<=280)inMenu=false;//Bắt đầu
-                if(x>=300&&x<=500&&y>=300&&y<=380)quit=true;//Thoát
-            }
-        }
-    }
-        while(SDL_PollEvent(&e)){
-            if(e.type==SDL_QUIT) quit=true;
-        }
+  // Cập nhật vị trí bóng
+  ball.x+=ballVelX;
+  ball.y+=ballVelY;
+  if(ball.y<=0||ball.y+ball.h>=WINDOW_HEIGHT) ballVelY=-ballVelY;
+  if(SDL_HasIntersection(&ball,&paddleLeft)||SDL_HasIntersection(&ball,&paddleRight)) ballVelX=-ballVelX;
+  if(ball.x<0||ball.x>WINDOW_WIDTH){
+   ball.x=WINDOW_WIDTH/2-10;
+   ball.y=WINDOW_HEIGHT/2-10;
+  }
 
-        //Input
-        const Uint8* keystates=SDL_GetKeyboardState(NULL);
-        if(keystates[SDL_SCANCODE_W]&&paddleLeft.y>0) paddleLeft.y-=5;
-        if(keystates[SDL_SCANCODE_S]&&paddleLeft.y+paddleLeft.h<WINDOW_HEIGHT) paddleLeft.y+=5;
-        if(keystates[SDL_SCANCODE_UP]&&paddleRight.y>0) paddleRight.y-=5;
-        if(keystates[SDL_SCANCODE_DOWN]&&paddleRight.y+paddleRight.h<WINDOW_HEIGHT) paddleRight.y+=5;
+  // Vẽ khung hình
+  SDL_RenderClear(renderer);
+  SDL_RenderCopy(renderer,gameBg,NULL,NULL);
 
-        //Cập nhật bóng
-        ball.x+=ballVelX;
-        ball.y+=ballVelY;
-        if(ball.y<=0||ball.y+ball.h>=WINDOW_HEIGHT) ballVelY=-ballVelY;
-        if(SDL_HasIntersection(&ball,&paddleLeft)||SDL_HasIntersection(&ball,&paddleRight)) ballVelX=-ballVelX;
-        if(ball.x<0||ball.x>WINDOW_WIDTH) ball={WINDOW_WIDTH/2-10,WINDOW_HEIGHT/2-10,20,20};
+  SDL_SetRenderDrawColor(renderer,paddleLeftColor.r,paddleLeftColor.g,paddleLeftColor.b,255);
+  SDL_RenderFillRect(renderer,&paddleLeft);
 
-        //Vẽ hình
-        SDL_SetRenderDrawColor(renderer,0,0,0,255); //Màu nền: đen
-        SDL_RenderClear(renderer);
-        SDL_SetRenderDrawColor(renderer,255,255,255,255); //Màu các thanh và bóng: trắng
-        SDL_RenderFillRect(renderer,&paddleLeft);
-        SDL_RenderFillRect(renderer,&paddleRight);
-        SDL_RenderFillRect(renderer,&ball);
-        SDL_RenderPresent(renderer);
+  SDL_SetRenderDrawColor(renderer,paddleRightColor.r,paddleRightColor.g,paddleRightColor.b,255);
+  SDL_RenderFillRect(renderer,&paddleRight);
 
-        //Tự điều chỉnh fps (xấp xỉ 60)
-        SDL_Delay(16); //16ms
-    }
+  SDL_SetRenderDrawColor(renderer,ballColor.r,ballColor.g,ballColor.b,255);
+  SDL_RenderFillRect(renderer,&ball);
 
-    //Giải phóng bộ nhớ
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-    return 0;
+  SDL_RenderPresent(renderer);
+  SDL_Delay(16); // FPS Cap:60
+ }
+
+ // Giải phóng tài nguyên
+ SDL_DestroyTexture(bgMain);
+ for(int i=0;i<3;++i) SDL_DestroyTexture(bgMenus[i]);
+ SDL_DestroyTexture(gameBg);
+ SDL_DestroyTexture(playBtnImg);
+ SDL_DestroyTexture(exitBtnImg);
+ SDL_DestroyRenderer(renderer);
+ SDL_DestroyWindow(window);
+ IMG_Quit();
+ SDL_Quit();
+ return 0;
 }

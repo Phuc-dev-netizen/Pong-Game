@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1745687248 source:c:\users\admin\desktop\table-tennis\main.cpp
+1745848868 source:c:\users\admin\desktop\table-tennis\main.cpp
 	<SDL.h>
 	<iostream>
 	<SDL_image.h>
