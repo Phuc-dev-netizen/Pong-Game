@@ -5,15 +5,15 @@ using namespace std;
 const int WINDOW_WIDTH=800;
 const int WINDOW_HEIGHT=600;
 
-// Mảng 7 màu cầu vồng
+// Mảng 7 màu cầu vồng (thay màu chàm thành màu trắng)
 SDL_Color rainbowColors[7]={
  {255,0,0,255},    // Đỏ
  {255,127,0,255},  // Cam
  {255,255,0,255},  // Vàng
  {0,255,0,255},    // Lục
  {0,0,255,255},    // Lam
- {75,0,130,255},   // Chàm
- {148,0,211,255}   // Tím
+ {148,0,211,255},  // Tím
+ {255,255,255,255} // Trắng
 };
 
 // Hàm tải ảnh và trả về texture
@@ -48,14 +48,13 @@ int main(int argc,char*argv[]){
   return 1;
  }
 
- // Tải ảnh nền và nút
+ // Tải ảnh nền và nút (đã xóa game_bg.png)
  SDL_Texture*bgMain=LoadTexture("menu_main.png",renderer);
  SDL_Texture*bgMenus[3]={
   LoadTexture("menu_bg1.png",renderer),
   LoadTexture("menu_bg2.png",renderer),
   LoadTexture("menu_bg3.png",renderer)
  };
- SDL_Texture*gameBg=LoadTexture("game_bg.png",renderer);
  SDL_Texture*playBtnImg=LoadTexture("button_play.png",renderer);
  SDL_Texture*exitBtnImg=LoadTexture("button_exit.png",renderer);
 
@@ -63,6 +62,8 @@ int main(int argc,char*argv[]){
  SDL_Rect paddleRight={WINDOW_WIDTH-20,WINDOW_HEIGHT/2-50,10,100};
  SDL_Rect ball={WINDOW_WIDTH/2-10,WINDOW_HEIGHT/2-10,20,20};
  int ballVelX=5,ballVelY=5;
+ float speedMultiplier=1.0f; // [MỚI] Hệ số tốc độ ban đầu
+ const float SPEED_INCREASE=0.01f; // [MỚI] Tốc độ tăng sau mỗi lần đập
 
  SDL_Color paddleLeftColor={255,255,255,255};
  SDL_Color paddleRightColor={255,255,255,255};
@@ -155,19 +156,23 @@ int main(int argc,char*argv[]){
   if(keystates[SDL_SCANCODE_UP]&&paddleRight.y>0) paddleRight.y-=5;
   if(keystates[SDL_SCANCODE_DOWN]&&paddleRight.y+paddleRight.h<WINDOW_HEIGHT) paddleRight.y+=5;
 
-  // Cập nhật vị trí bóng
-  ball.x+=ballVelX;
-  ball.y+=ballVelY;
+  // Cập nhật vị trí bóng (đã thêm tính năng tăng tốc)
+  ball.x+=(int)(ballVelX*speedMultiplier); // [MỚI] Áp dụng hệ số tốc độ
+  ball.y+=(int)(ballVelY*speedMultiplier); // [MỚI] Áp dụng hệ số tốc độ
   if(ball.y<=0||ball.y+ball.h>=WINDOW_HEIGHT) ballVelY=-ballVelY;
-  if(SDL_HasIntersection(&ball,&paddleLeft)||SDL_HasIntersection(&ball,&paddleRight)) ballVelX=-ballVelX;
+  if(SDL_HasIntersection(&ball,&paddleLeft)||SDL_HasIntersection(&ball,&paddleRight)){
+   ballVelX=-ballVelX;
+   speedMultiplier+=SPEED_INCREASE; // [MỚI] Tăng tốc sau mỗi lần đập
+  }
   if(ball.x<0||ball.x>WINDOW_WIDTH){
    ball.x=WINDOW_WIDTH/2-10;
    ball.y=WINDOW_HEIGHT/2-10;
+   speedMultiplier=1.0f; // [MỚI] Reset tốc độ khi mất điểm
   }
 
   // Vẽ khung hình
+  SDL_SetRenderDrawColor(renderer,0,0,0,255);
   SDL_RenderClear(renderer);
-  SDL_RenderCopy(renderer,gameBg,NULL,NULL);
 
   SDL_SetRenderDrawColor(renderer,paddleLeftColor.r,paddleLeftColor.g,paddleLeftColor.b,255);
   SDL_RenderFillRect(renderer,&paddleLeft);
@@ -185,7 +190,6 @@ int main(int argc,char*argv[]){
  // Giải phóng tài nguyên
  SDL_DestroyTexture(bgMain);
  for(int i=0;i<3;++i) SDL_DestroyTexture(bgMenus[i]);
- SDL_DestroyTexture(gameBg);
  SDL_DestroyTexture(playBtnImg);
  SDL_DestroyTexture(exitBtnImg);
  SDL_DestroyRenderer(renderer);
