@@ -9,8 +9,14 @@
 	<iostream>
 	<SDL_image.h>
 
-1746500996 source:c:\users\dell\desktop\table-tennis\main.cpp
+1746560648 source:c:\users\dell\desktop\table-tennis\main.cpp
+	"game.h"
+
+1746559385 c:\users\dell\desktop\table-tennis\game.h
 	<SDL.h>
-	<iostream>
 	<SDL_image.h>
+	<iostream>
+
+1746560949 source:c:\users\dell\desktop\table-tennis\game.cpp
+	"game.h"
 
