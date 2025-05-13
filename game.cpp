@@ -170,8 +170,12 @@ void HandleGameInput(const Uint8* keystates, SDL_Rect& paddleLeft, SDL_Rect& pad
 }
 
 // Hàm cập nhật game
-void UpdateGame(SDL_Rect& ball, int& ballVelX, int& ballVelY, float& speedMultiplier, const SDL_Rect& paddleLeft, const SDL_Rect& paddleRight, bool waitingForEnter){
+void UpdateGame(SDL_Rect& ball, int& ballVelX, int& ballVelY, float& speedMultiplier, const SDL_Rect& paddleLeft, const SDL_Rect& paddleRight, bool& waitingForEnter){
+    static Uint32 lastScoreTime=0;  // Thời điểm ghi điểm gần nhất
+    const Uint32 SCORE_DELAY=1000;
     if(!waitingForEnter){
+        // Kiểm tra nếu đã đủ thời gian chờ sau khi ghi điểm
+        if(SDL_GetTicks()-lastScoreTime>=SCORE_DELAY){
         ball.x+=(int)(ballVelX*speedMultiplier);
         ball.y+=(int)(ballVelY*speedMultiplier);
         if(ball.y<=0||ball.y+ball.h>=WINDOW_HEIGHT) ballVelY=-ballVelY;
@@ -179,11 +183,11 @@ void UpdateGame(SDL_Rect& ball, int& ballVelX, int& ballVelY, float& speedMultip
             ballVelX=-ballVelX;
             speedMultiplier+=0.05f; // Tăng tốc sau mỗi lần đập
         }
-    }
+    }}
     if(ball.x<0||ball.x>WINDOW_WIDTH){
         if(ball.x<0) rightScore++;
         else leftScore++;
-
+        lastScoreTime=SDL_GetTicks(); // Lưu thời điểm ghi điểm
         bool isFirstLaunch=(outOfBoundsCount==0&&ball.x==WINDOW_WIDTH/2-10);
         outOfBoundsCount++;
         if(outOfBoundsCount>=2&&!isFirstLaunch){

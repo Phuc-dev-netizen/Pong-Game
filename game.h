@@ -2,6 +2,7 @@
 #define GAME_H
 #include<SDL.h>
 #include<SDL_image.h>
+#include<SDL_audio.h>
 #include<iostream>
 using namespace std;
 // Kích thước cửa sổ
@@ -30,5 +31,5 @@ void RunMainMenu(SDL_Renderer* renderer, SDL_Texture* bgMain, SDL_Texture* playB
 void RunColorMenu(SDL_Renderer* renderer, SDL_Texture* bgMenus[], Color rainbowColors[], int& currentColorMenu, Color& paddleLeftColor, Color& paddleRightColor, Color& ballColor, bool& inColorMenu, bool& quit);
 // Hàm game logic
 void HandleGameInput(const Uint8* keystates, SDL_Rect& paddleLeft, SDL_Rect& paddleRight);
-void UpdateGame(SDL_Rect& ball, int& ballVelX, int& ballVelY, float& speedMultiplier, const SDL_Rect& paddleLeft, const SDL_Rect& paddleRight, bool waitingForEnter);
+void UpdateGame(SDL_Rect& ball, int& ballVelX, int& ballVelY, float& speedMultiplier, const SDL_Rect& paddleLeft, const SDL_Rect& paddleRight, bool& waitingForEnter);
 #endif
