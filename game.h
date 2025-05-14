@@ -32,4 +32,16 @@ void RunColorMenu(SDL_Renderer* renderer, SDL_Texture* bgMenus[], Color rainbowC
 // Hàm game logic
 void HandleGameInput(const Uint8* keystates, SDL_Rect& paddleLeft, SDL_Rect& paddleRight);
 void UpdateGame(SDL_Rect& ball, int& ballVelX, int& ballVelY, float& speedMultiplier, const SDL_Rect& paddleLeft, const SDL_Rect& paddleRight, bool& waitingForEnter);
+
+struct AudioData{
+Uint8* pos;
+Uint32 length;};
+extern SDL_AudioDeviceID audioDevice;
+extern bool audioInitialized;
+extern AudioData paddleSound,scoreSound,roundSound;
+void InitializeAudio();
+void PlayPaddleSound();
+void PlayScoreSound();
+void PlayRoundStartSound();
+void CleanupAudio();
 #endif

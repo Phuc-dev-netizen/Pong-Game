@@ -9,7 +9,10 @@ bool shouldLaunchRight=true; // Hướng phóng tiếp theo
 bool waitingForEnter=true;   // Đang chờ nhấn Enter
 int outOfBoundsCount=0;      // Đếm số lần bóng ra biên
 bool inMenu=true;
-
+// [MỚI] Biến audio
+SDL_AudioDeviceID audioDevice;
+bool audioInitialized=false;
+AudioData paddleSound,scoreSound,roundSound;
 // Hàm tải ảnh và trả về texture
 SDL_Texture* LoadTexture(const char* path, SDL_Renderer* renderer){
     SDL_Surface* surface=IMG_Load(path);
@@ -180,6 +183,7 @@ void UpdateGame(SDL_Rect& ball, int& ballVelX, int& ballVelY, float& speedMultip
         ball.y+=(int)(ballVelY*speedMultiplier);
         if(ball.y<=0||ball.y+ball.h>=WINDOW_HEIGHT) ballVelY=-ballVelY;
         if(SDL_HasIntersection(&ball,&paddleLeft)||SDL_HasIntersection(&ball,&paddleRight)){
+            PlayPaddleSound();
             ballVelX=-ballVelX;
             speedMultiplier+=0.05f; // Tăng tốc sau mỗi lần đập
         }
@@ -187,6 +191,7 @@ void UpdateGame(SDL_Rect& ball, int& ballVelX, int& ballVelY, float& speedMultip
     if(ball.x<0||ball.x>WINDOW_WIDTH){
         if(ball.x<0) rightScore++;
         else leftScore++;
+        PlayScoreSound();
         lastScoreTime=SDL_GetTicks(); // Lưu thời điểm ghi điểm
         bool isFirstLaunch=(outOfBoundsCount==0&&ball.x==WINDOW_WIDTH/2-10);
         outOfBoundsCount++;
@@ -219,3 +224,56 @@ void UpdateGame(SDL_Rect& ball, int& ballVelX, int& ballVelY, float& speedMultip
         }
     }
 }
+// [MỚI] Hàm khởi tạo audio
+void InitializeAudio(){
+if(SDL_Init(SDL_INIT_AUDIO)<0){
+cerr<<"SDL audio could not initialize: "<<SDL_GetError()<<endl;
+return;}
+SDL_AudioSpec wavSpec;
+Uint8* wavBuffer;
+Uint32 wavLength;
+// Load paddle sound
+if(SDL_LoadWAV("paddle.wav",&wavSpec,&wavBuffer,&wavLength)==NULL){
+cerr<<"Failed to load paddle sound: "<<SDL_GetError()<<endl;
+return;}
+paddleSound={wavBuffer,wavLength};
+// Load score sound
+if(SDL_LoadWAV("score.wav",&wavSpec,&wavBuffer,&wavLength)==NULL){
+cerr<<"Failed to load score sound: "<<SDL_GetError()<<endl;
+return;}
+scoreSound={wavBuffer,wavLength};
+// Load round sound
+if(SDL_LoadWAV("round.wav",&wavSpec,&wavBuffer,&wavLength)==NULL){
+cerr<<"Failed to load round sound: "<<SDL_GetError()<<endl;
+return;}
+roundSound={wavBuffer,wavLength};
+SDL_AudioSpec desiredSpec=wavSpec;
+audioDevice=SDL_OpenAudioDevice(NULL,0,&desiredSpec,NULL,0);
+if(audioDevice==0){
+cerr<<"Failed to open audio device: "<<SDL_GetError()<<endl;
+return;}
+audioInitialized=true;
+SDL_PauseAudioDevice(audioDevice,0);}
+
+// [MỚI] Hàm phát âm thanh paddle
+void PlayPaddleSound(){
+if(!audioInitialized)return;
+SDL_QueueAudio(audioDevice,paddleSound.pos,paddleSound.length);}
+
+// [MỚI] Hàm phát âm thanh điểm
+void PlayScoreSound(){
+if(!audioInitialized)return;
+SDL_QueueAudio(audioDevice,scoreSound.pos,scoreSound.length);}
+
+// [MỚI] Hàm phát âm thanh round mới
+void PlayRoundStartSound(){
+if(!audioInitialized)return;
+SDL_QueueAudio(audioDevice,roundSound.pos,roundSound.length);}
+
+// [MỚI] Hàm dọn dẹp audio
+void CleanupAudio(){
+if(audioInitialized){
+SDL_CloseAudioDevice(audioDevice);
+SDL_FreeWAV(paddleSound.pos);
+SDL_FreeWAV(scoreSound.pos);
+SDL_FreeWAV(roundSound.pos);}}

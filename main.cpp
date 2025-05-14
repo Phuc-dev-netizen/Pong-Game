@@ -8,6 +8,10 @@ int main(int argc, char* argv[]){
     if(!(IMG_Init(IMG_INIT_PNG)&IMG_INIT_PNG)){
         cerr<<"SDL_image could not initialize: "<<IMG_GetError()<<endl;
         return 1;}
+    // [MỚI] Khởi tạo audio
+    if(SDL_Init(SDL_INIT_AUDIO)<0){
+        cerr<<"SDL audio could not initialize: "<<SDL_GetError()<<endl;}
+    InitializeAudio();
     // Tạo cửa sổ
     SDL_Window* window=SDL_CreateWindow("Pong Game",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,WINDOW_WIDTH,WINDOW_HEIGHT,SDL_WINDOW_SHOWN);
     if(!window){
@@ -67,7 +71,17 @@ int main(int argc, char* argv[]){
             while(SDL_PollEvent(&e)){
                 if(e.type==SDL_QUIT) quit=true;
                 if(waitingForEnter&&e.type==SDL_KEYDOWN&&e.key.keysym.sym==SDLK_RETURN){
-                    waitingForEnter=false;}}
+                    waitingForEnter=false; PlayRoundStartSound();}
+                // [MỚI] Thêm xử lý phím ESC
+                if(e.key.keysym.sym==SDLK_ESCAPE){
+                    inMenu=true;  // Về menu chính
+                    waitingForEnter=true;  // Reset trạng thái chờ
+                    // [MỚI] Reset điểm nếu muốn
+                    leftScore=0;
+                    rightScore=0;
+                    currentRound=1;
+                }
+            }
             // Xử lý input
             const Uint8* keystates=SDL_GetKeyboardState(NULL);
             HandleGameInput(keystates,paddleLeft,paddleRight);
@@ -85,6 +99,8 @@ int main(int argc, char* argv[]){
             SDL_RenderFillRect(renderer,&ball);
             SDL_RenderPresent(renderer);
             SDL_Delay(16);}}
+    // [MỚI] Dọn dẹp audio
+    CleanupAudio();
     // Giải phóng bộ nhớ
     SDL_DestroyTexture(bgMain);
     for(int i=0;i<3;++i) SDL_DestroyTexture(bgMenus[i]);
